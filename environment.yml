@@ -1,0 +1,16 @@
+name: wakeagent
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - pip
+  - pytest
+  - numpy
+  - scipy
+  - pip:
+      # Optional MVP backends. Keep these optional in code paths.
+      # - openwakeword
+      # - silero-vad
+      # - faster-whisper
+      - sounddevice
+      - pydantic

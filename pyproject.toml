@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "WakeAgent"
+version = "0.1.0"
+description = "Mockable MVP voice assistant pipeline for wake word, STT, routing, and safe CLI agent execution."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "numpy>=1.24",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7"]
+live = ["sounddevice>=0.4"]
+
+[project.scripts]
+vox = "voxshell.main:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
