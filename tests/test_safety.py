@@ -1,5 +1,5 @@
-from voxshell.agent.executor import AgentExecutor
-from voxshell.agent.safety import SafetyPolicy
+from wakeagent.agent.executor import AgentExecutor
+from wakeagent.agent.safety import SafetyPolicy
 
 
 def test_policy_allows_benign_prompt() -> None:

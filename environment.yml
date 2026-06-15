@@ -4,13 +4,13 @@ channels:
 dependencies:
   - python=3.11
   - pip
-  - pytest
   - numpy
   - scipy
+  - pytest
+  - pydantic
   - pip:
-      # Optional MVP backends. Keep these optional in code paths.
-      # - openwakeword
-      # - silero-vad
-      # - faster-whisper
       - sounddevice
-      - pydantic
+      - openwakeword
+      - onnxruntime
+      - faster-whisper
+      - silero-vad

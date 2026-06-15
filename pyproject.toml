@@ -10,14 +10,19 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
   "numpy>=1.24",
+  "scipy>=1.10",
 ]
 
 [project.optional-dependencies]
 dev = ["pytest>=7"]
-live = ["sounddevice>=0.4"]
+wake = ["openwakeword"]
+stt = ["faster-whisper"]
+audio = ["sounddevice>=0.4", "silero-vad"]
+live = ["sounddevice>=0.4", "openwakeword", "onnxruntime", "faster-whisper", "silero-vad"]
+all = ["sounddevice>=0.4", "openwakeword", "onnxruntime", "faster-whisper", "silero-vad", "pytest>=7"]
 
 [project.scripts]
-vox = "voxshell.main:main"
+wakeagent = "wakeagent.main:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

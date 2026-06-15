@@ -1,6 +1,6 @@
-from voxshell.main import create_app
-from voxshell.config import AppConfig
-from voxshell.state_machine import State
+from wakeagent.main import create_app
+from wakeagent.config import AppConfig
+from wakeagent.state_machine import State
 
 
 def test_full_mock_pipeline_from_wake_to_agent_dry_run() -> None:

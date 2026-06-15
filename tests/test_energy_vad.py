@@ -1,7 +1,7 @@
 import numpy as np
 
-from voxshell.audio.frames import AudioFrame
-from voxshell.vad.energy_vad import EnergyVAD
+from wakeagent.audio.frames import AudioFrame
+from wakeagent.vad.energy_vad import EnergyVAD
 
 
 def test_energy_vad_detects_silence() -> None:
