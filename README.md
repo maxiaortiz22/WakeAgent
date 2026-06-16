@@ -49,6 +49,9 @@ wakeagent --stt-backend faster-whisper --stt-model-size tiny --stt-language es -
 wakeagent --mode live --wake-backend openwakeword --stt-backend faster-whisper --stt-model-size tiny
 wakeagent --mode live --wake-backend openwakeword --wakeword-name alexa --wake-inference-framework onnx --stt-backend faster-whisper --stt-model-size tiny --stt-language es
 wakeagent --mode live --wake-backend openwakeword --wakeword-name alexa --wake-inference-framework onnx --stt-backend faster-whisper --stt-model-size base --stt-language es --wake-timeout-seconds 30 --min-recording-seconds 2.5 --end-silence-ms 1200 --max-recording-seconds 12
+wakeagent --download-stt-model --stt-model-size medium --stt-language es --stt-model-dir .\.models\faster-whisper
+wakeagent --download-stt-model --stt-model-size medium --stt-language en --stt-model-dir .\.models\faster-whisper
+wakeagent --mode live --target-agent codex --wake-backend openwakeword --wakeword-name alexa --wake-inference-framework onnx --stt-backend faster-whisper --stt-model-size medium --stt-model-dir .\.models\faster-whisper --stt-local-files-only --stt-language es --wake-timeout-seconds 30 --min-recording-seconds 2.5 --end-silence-ms 1200 --max-recording-seconds 12
 ```
 
 ## Run Mock Mode First
@@ -71,6 +74,33 @@ wakeagent --stt-backend faster-whisper --stt-model-size tiny --stt-language es -
 ```
 
 The first run may download or initialize the selected local model. Use `tiny` first because it is the fastest sanity check on CPU. Add `--stt-language es` for Spanish audio or `--stt-language en` for English audio. If `faster-whisper` is not installed or the model cannot load, WakeAgent prints a clear `[stt]` error and exits without starting the microphone pipeline.
+
+### Preload STT Models
+
+You can download/load a faster-whisper model before live testing:
+
+```powershell
+wakeagent --download-stt-model --stt-model-size medium --stt-language es
+```
+
+To keep the model files inside the repo workspace instead of the default Hugging Face cache:
+
+```powershell
+wakeagent --download-stt-model --stt-model-size medium --stt-language es --stt-model-dir .\.models\faster-whisper
+```
+
+Then use the same model directory in live mode. Add `--stt-local-files-only` when you want WakeAgent to fail fast if the model is not already available locally:
+
+```powershell
+wakeagent --mode live --wake-backend openwakeword --wakeword-name alexa --wake-inference-framework onnx --stt-backend faster-whisper --stt-model-size medium --stt-model-dir .\.models\faster-whisper --stt-local-files-only --stt-language es
+```
+
+Notes:
+
+- `--download-stt-model` forces `faster-whisper`, initializes the selected model, prints where it is ready, and exits before microphone capture.
+- `--stt-model-dir` is passed to faster-whisper as its download/cache root for this run.
+- `--stt-local-files-only` prevents network-backed model resolution. It is useful after preloading, but it will fail if the selected model is not already in the configured cache.
+- Hugging Face warnings can still be printed while the library checks cache metadata; they do not necessarily mean the model is being downloaded again.
 
 For live English commands such as `ask codex to describe this repo`, pass the language explicitly:
 
@@ -99,6 +129,28 @@ Useful Spanish commands for the current router:
 - `pedile a codex que describa este repo`
 - `pedile a codex que abra paint`
 
+### Fixed Agent Selection
+
+By default, WakeAgent uses `--target-agent auto`, so the router tries to infer `codex` or `claude` from the transcript. This is fragile with short Spanish commands because STT can hear names as `codigos`, `cloud`, or similar.
+
+Use `--target-agent codex` or `--target-agent claude` to choose the CLI agent outside the voice command. Local commands still work, but every other transcript goes to the selected agent:
+
+```powershell
+wakeagent --mode live --target-agent codex --wake-backend openwakeword --wakeword-name alexa --wake-inference-framework onnx --stt-backend faster-whisper --stt-model-size medium --stt-language es --wake-timeout-seconds 30 --min-recording-seconds 2.5 --end-silence-ms 1200 --max-recording-seconds 12
+```
+
+With that command you can say:
+
+- `Alexa, abrí cursor`
+- `Alexa, explicame este repositorio`
+- `Alexa, estado`
+
+For Claude:
+
+```powershell
+wakeagent --mode live --target-agent claude --wake-backend openwakeword --wakeword-name alexa --wake-inference-framework onnx --stt-backend faster-whisper --stt-model-size medium --stt-language es --wake-timeout-seconds 30 --min-recording-seconds 2.5 --end-silence-ms 1200 --max-recording-seconds 12
+```
+
 For live microphone testing, this more patient configuration is usually better than the fastest defaults:
 
 ```powershell
@@ -112,6 +164,12 @@ Tuning notes:
 - `--end-silence-ms`: trailing silence required before stopping.
 - `--max-recording-seconds`: hard cap so listening cannot run forever.
 - `--vad-threshold`: lower values are more sensitive; try `0.01` if speech is missed, `0.03` if background noise keeps recording.
+- `--target-agent`: `auto` detects the agent from speech; `codex` or `claude` routes non-local commands directly to that agent.
+- `--stt-model-size`: larger models are usually more accurate but take longer to load and transcribe.
+- `--stt-model-dir`: optional faster-whisper model cache/download directory.
+- `--stt-local-files-only`: use only already-downloaded model files.
+- `--stt-beam-size`: decoding search width; `5` is the default balance.
+- `--stt-initial-prompt` and `--stt-hotwords`: optional hints for domain words such as `Codex`, `Claude`, and `Cursor`.
 
 Recommended audio format for predictable local testing:
 
@@ -140,10 +198,12 @@ On Windows, `sounddevice` may not resolve as a conda package in every channel se
 - TTS is console-only.
 - Agent execution defaults to dry-run and should remain that way while developing.
 - This is not a daemon, service, GUI, or secure sandbox.
+- Live mode currently handles one interaction per process, so larger STT models are loaded again each time you restart `wakeagent`.
 
 ## Next Steps
 
 - Add a broader live-audio integration test harness with recorded fixtures.
+- Add continuous live mode so wake/STT models stay loaded across multiple commands.
 - Add a real `whisper.cpp` backend around a local `whisper-cli` binary.
 - Add Silero VAD behind the existing VAD interface.
 - Add approval prompts for non-dry-run execution.

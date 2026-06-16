@@ -15,9 +15,14 @@ class FasterWhisperBackend:
     def __init__(
         self,
         model_size: str = "base",
+        model_dir: str | None = None,
         device: str = "cpu",
         compute_type: str = "int8",
         language: str | None = None,
+        local_files_only: bool = False,
+        beam_size: int = 5,
+        initial_prompt: str | None = None,
+        hotwords: str | None = None,
     ) -> None:
         try:
             from faster_whisper import WhisperModel
@@ -27,11 +32,22 @@ class FasterWhisperBackend:
             ) from exc
 
         self.model_size = model_size
+        self.model_dir = model_dir
         self.device = device
         self.compute_type = compute_type
         self.language = language
+        self.local_files_only = local_files_only
+        self.beam_size = beam_size
+        self.initial_prompt = initial_prompt
+        self.hotwords = hotwords
         try:
-            self._model = WhisperModel(model_size, device=device, compute_type=compute_type)
+            self._model = WhisperModel(
+                model_size,
+                device=device,
+                compute_type=compute_type,
+                download_root=model_dir,
+                local_files_only=local_files_only,
+            )
         except Exception as exc:
             raise RuntimeError(f"faster-whisper could not load model '{model_size}': {exc}") from exc
 
@@ -58,7 +74,13 @@ class FasterWhisperBackend:
             raise RuntimeError(f"WAV file does not exist: {wav_path}")
 
         try:
-            segments, info = self._model.transcribe(str(wav_path), language=self.language)
+            segments, info = self._model.transcribe(
+                str(wav_path),
+                language=self.language,
+                beam_size=self.beam_size,
+                initial_prompt=self.initial_prompt,
+                hotwords=self.hotwords,
+            )
             text = " ".join(segment.text.strip() for segment in segments).strip()
         except Exception as exc:
             raise RuntimeError(f"faster-whisper transcription failed: {exc}") from exc

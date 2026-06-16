@@ -41,7 +41,7 @@ def test_router_spanish_codex_prompt_cleanup() -> None:
 
 
 def test_router_cleans_common_stt_errors() -> None:
-    result = CommandRouter().route("y la codex que habrá peint.")
+    result = CommandRouter().route("y la codex que habra peint.")
 
     assert result.kind is RouteKind.AGENT
     assert result.prompt == "abra paint."
@@ -53,6 +53,36 @@ def test_router_routes_spanish_stt_codex_aliases() -> None:
     assert result.kind is RouteKind.AGENT
     assert result.agent_cmd == "codex"
     assert result.prompt == "abra paint."
+
+
+def test_router_forced_codex_routes_plain_command() -> None:
+    result = CommandRouter(target_agent="codex").route("abra cursor")
+
+    assert result.kind is RouteKind.AGENT
+    assert result.agent_cmd == "codex"
+    assert result.prompt == "abra cursor"
+
+
+def test_router_forced_claude_cleans_generic_spanish_prefix() -> None:
+    result = CommandRouter(target_agent="claude").route("pide que me explique este repositorio")
+
+    assert result.kind is RouteKind.AGENT
+    assert result.agent_cmd == "claude"
+    assert result.prompt == "me explique este repositorio"
+
+
+def test_router_forced_agent_keeps_local_commands() -> None:
+    result = CommandRouter(target_agent="claude").route("estado")
+
+    assert result.kind is RouteKind.LOCAL
+
+
+def test_router_cleans_claude_stt_alias() -> None:
+    result = CommandRouter().route("y la cloud que me explique este repositorio")
+
+    assert result.kind is RouteKind.AGENT
+    assert result.agent_cmd == "claude"
+    assert result.prompt == "me explique este repositorio"
 
 
 def test_router_claude_agent() -> None:

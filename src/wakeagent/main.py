@@ -17,6 +17,13 @@ from wakeagent.wake.mock_wake import MockWakeWordDetector
 from wakeagent.wake.openwakeword_detector import OpenWakeWordDetector
 
 
+DEFAULT_STT_INITIAL_PROMPT = (
+    "Comandos en espanol para WakeAgent. Palabras importantes: Codex, Claude, Cursor, "
+    "repositorio, abrir, explicar."
+)
+DEFAULT_STT_HOTWORDS = "Codex Claude Cursor repositorio abrir explicar"
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="WakeAgent voice assistant MVP")
     parser.add_argument("--mode", choices=["mock", "live"], default="mock")
@@ -34,10 +41,17 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--vad-threshold", type=float, default=0.02)
     parser.add_argument("--stt-backend", choices=["mock", "faster-whisper"], default="mock")
     parser.add_argument("--stt-model-size", default="base")
+    parser.add_argument("--stt-model-dir", default=None)
     parser.add_argument("--stt-device", default="cpu")
     parser.add_argument("--stt-compute-type", default="int8")
     parser.add_argument("--stt-language", default=None)
+    parser.add_argument("--stt-local-files-only", action="store_true")
+    parser.add_argument("--stt-beam-size", type=int, default=5)
+    parser.add_argument("--stt-initial-prompt", default=None)
+    parser.add_argument("--stt-hotwords", default=None)
     parser.add_argument("--stt-wav", default=None, help="Transcribe a WAV file directly and exit.")
+    parser.add_argument("--download-stt-model", action="store_true", help="Download/load the selected STT model and exit.")
+    parser.add_argument("--target-agent", choices=["auto", "codex", "claude"], default="auto")
     parser.add_argument("--agent-cmd", default="codex")
     parser.add_argument("--dry-run", action="store_true", default=True)
     parser.add_argument("--no-dry-run", action="store_false", dest="dry_run")
@@ -74,7 +88,7 @@ def create_app(config: AppConfig) -> VoiceAssistantStateMachine:
         wake_detector=wake_detector,
         vad=vad,
         stt=stt,
-        router=CommandRouter(),
+        router=CommandRouter(target_agent=config.target_agent),
         executor=executor,
         speaker=ConsoleSpeaker(),
     )
@@ -112,9 +126,14 @@ def create_stt_backend(config: AppConfig, allow_fallback: bool = True) -> MockST
     try:
         return FasterWhisperBackend(
             model_size=config.stt_model_size,
+            model_dir=config.stt_model_dir,
             device=config.stt_device,
             compute_type=config.stt_compute_type,
             language=config.stt_language,
+            local_files_only=config.stt_local_files_only,
+            beam_size=config.stt_beam_size,
+            initial_prompt=config.stt_initial_prompt or DEFAULT_STT_INITIAL_PROMPT,
+            hotwords=config.stt_hotwords or DEFAULT_STT_HOTWORDS,
         )
     except RuntimeError as exc:
         if not allow_fallback:
@@ -142,6 +161,26 @@ def transcribe_wav_once(config: AppConfig, wav_path: Path) -> int:
     return 0
 
 
+def download_stt_model(config: AppConfig) -> int:
+    if config.stt_backend != "faster-whisper":
+        print("[stt] --download-stt-model requires --stt-backend faster-whisper.")
+        return 1
+
+    try:
+        create_stt_backend(config, allow_fallback=False)
+    except RuntimeError as exc:
+        print(f"[stt] {exc}")
+        return 1
+
+    model_location = config.stt_model_dir or "default Hugging Face cache"
+    print(
+        "[stt] model ready: "
+        f"backend=faster-whisper model={config.stt_model_size} device={config.stt_device} "
+        f"compute_type={config.stt_compute_type} location={model_location}"
+    )
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     config = AppConfig(
@@ -157,16 +196,25 @@ def main(argv: list[str] | None = None) -> int:
         min_recording_frames=_frames_from_seconds(args.min_recording_seconds, frame_duration_ms=AppConfig().frame_duration_ms),
         end_silence_frames=_frames_from_ms(args.end_silence_ms, frame_duration_ms=AppConfig().frame_duration_ms),
         vad_threshold=args.vad_threshold,
-        stt_backend=args.stt_backend,
+        stt_backend="faster-whisper" if args.download_stt_model else args.stt_backend,
         stt_model_size=args.stt_model_size,
+        stt_model_dir=args.stt_model_dir,
         stt_device=args.stt_device,
         stt_compute_type=args.stt_compute_type,
         stt_language=args.stt_language,
+        stt_local_files_only=args.stt_local_files_only,
+        stt_beam_size=args.stt_beam_size,
+        stt_initial_prompt=args.stt_initial_prompt,
+        stt_hotwords=args.stt_hotwords,
         transcript=args.transcript,
+        target_agent=args.target_agent,
         agent_cmd=args.agent_cmd,
         dry_run=args.dry_run,
         timeout_seconds=args.timeout,
     )
+    if args.download_stt_model:
+        return download_stt_model(config)
+
     if args.stt_wav:
         return transcribe_wav_once(config, Path(args.stt_wav))
 

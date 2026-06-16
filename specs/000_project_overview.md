@@ -6,11 +6,12 @@ Define the MVP architecture for WakeAgent, a low-resource background voice assis
 
 ## Requirements
 
-- Start from a terminal command named `vox`.
+- Start from a terminal command named `wakeagent`.
 - Support `mock` and `live` modes.
 - Model the pipeline as explicit state transitions.
 - Keep wake word, audio capture, VAD, STT, TTS, routing, and agent execution replaceable through small interfaces.
 - Default to safe dry-run behavior for CLI agent execution.
+- Allow the target CLI agent to be selected by command-line option instead of requiring voice recognition of the agent name.
 - Print state transitions and final results to the console.
 
 ## Non-goals
@@ -33,8 +34,9 @@ Define the MVP architecture for WakeAgent, a low-resource background voice assis
 
 ## Acceptance criteria
 
-- `vox --mode mock` completes one full mock interaction.
-- `vox --mode mock --transcript "ask codex to explain this repo" --dry-run` returns an agent dry-run result.
+- `wakeagent --mode mock` completes one full mock interaction.
+- `wakeagent --mode mock --transcript "ask codex to explain this repo" --dry-run` returns an agent dry-run result.
+- `wakeagent --mode mock --target-agent claude --transcript "explain this repo"` routes to `claude` without requiring the transcript to contain `claude`.
 - Tests pass without microphone hardware or optional model dependencies.
 - Live mode reports missing dependencies clearly instead of crashing with obscure import errors.
 

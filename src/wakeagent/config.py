@@ -8,6 +8,7 @@ Mode = Literal["mock", "live"]
 WakeBackend = Literal["mock", "openwakeword"]
 WakeInferenceFramework = Literal["onnx", "tflite"]
 SttBackend = Literal["mock", "faster-whisper"]
+TargetAgent = Literal["auto", "codex", "claude"]
 
 
 @dataclass(frozen=True)
@@ -28,10 +29,16 @@ class AppConfig:
     vad_threshold: float = 0.02
     stt_backend: SttBackend = "mock"
     stt_model_size: str = "base"
+    stt_model_dir: str | None = None
     stt_device: str = "cpu"
     stt_compute_type: str = "int8"
     stt_language: str | None = None
+    stt_local_files_only: bool = False
+    stt_beam_size: int = 5
+    stt_initial_prompt: str | None = None
+    stt_hotwords: str | None = None
     transcript: str = "status"
+    target_agent: TargetAgent = "auto"
     agent_cmd: str = "codex"
     dry_run: bool = True
     timeout_seconds: float = 30.0

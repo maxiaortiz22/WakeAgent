@@ -9,6 +9,7 @@ Specify safe subprocess execution for optional local CLI agents.
 - Default to dry-run.
 - Log and return the command that would be executed.
 - In non-dry-run mode, execute only the configured binary with the prompt as an argument.
+- Accept the routed agent command from the router when the CLI selects a fixed target agent.
 - Never use `shell=True`.
 - Use timeouts and capture stdout/stderr.
 - Return structured execution results.
@@ -34,6 +35,7 @@ Specify safe subprocess execution for optional local CLI agents.
 ## Test cases
 
 - Dry-run returns `command=["codex", "..."]`.
+- Fixed target agent routing can produce dry-run commands such as `command=["claude", "..."]`.
 - Blocked destructive prompt is not executed.
 - Allowed prompt passes policy.
 
